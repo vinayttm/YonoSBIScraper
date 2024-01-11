@@ -5,6 +5,9 @@ import android.content.pm.PackageManager;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.accessibility.AccessibilityNodeInfo;
+
+import com.google.gson.Gson;
+
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -214,6 +217,98 @@ public class AccessibilityMethod {
         }
 
         return packageNames;
+    }
+
+
+    public static List<String> listAllTextsInActiveWindow(AccessibilityNodeInfo rootNode) {
+        if (rootNode != null) {
+            List<String> allTexts = new ArrayList<>();
+            traverseNodesForText(rootNode, allTexts);
+            rootNode.recycle();
+            // Now 'allTexts' contains a list of all texts in the active window
+            Gson gson = new Gson();
+            String json = gson.toJson(allTexts);
+            Log.d("OUTPUT", json);
+            return allTexts;
+        } else {
+            Log.d("OUTPUT", "[]");
+        }
+        return new ArrayList<>();
+    }
+
+    public static void traverseNodesForText(AccessibilityNodeInfo node, List<String> allTexts) {
+        if (node == null) return;
+        String output = node.getText() != null ? node.getText().toString() : node.getContentDescription() != null ? node.getContentDescription().toString() : "";
+        allTexts.add(output);
+
+        for (int i = 0; i < node.getChildCount(); i++) {
+            AccessibilityNodeInfo childNode = node.getChild(i);
+            traverseNodesForText(childNode, allTexts);
+        }
+    }
+
+    public static AccessibilityNodeInfo findNodeByPackageName(AccessibilityNodeInfo node, String targetClassName) {
+        if (node == null) return null;
+
+        if (node.getPackageName().toString().equals(targetClassName)) {
+            return node;
+        }
+
+        for (int i = 0; i < node.getChildCount(); i++) {
+            AccessibilityNodeInfo childNode = node.getChild(i);
+            AccessibilityNodeInfo targetNode = findNodeByPackageName(childNode, targetClassName);
+            if (targetNode != null) {
+                return targetNode;
+            }
+        }
+
+        return null;
+    }
+
+    public static AccessibilityNodeInfo getTopMostParentNode(AccessibilityNodeInfo nodeInfo) {
+        if (nodeInfo == null) {
+            return null;
+        }
+
+        AccessibilityNodeInfo parentNode = nodeInfo;
+        AccessibilityNodeInfo topMostParentNode = null;
+
+        while (parentNode != null) {
+            topMostParentNode = parentNode;
+            parentNode = parentNode.getParent();
+        }
+
+        return topMostParentNode;
+    }
+
+    public static AccessibilityNodeInfo findNodeByText(AccessibilityNodeInfo rootNode, String text, boolean deepSearch, boolean clickable) {
+        if (rootNode == null) return null;
+
+        for (int i = 0; i < rootNode.getChildCount(); i++) {
+            AccessibilityNodeInfo childNode = rootNode.getChild(i);
+            if (childNode != null) {
+                if (childNode.getText() != null && text.equals(childNode.getText().toString()) && (!clickable || childNode.isClickable())) {
+                    return childNode;
+                } else if (deepSearch) {
+                    if (childNode.getText() != null && childNode.getText().toString().contains(text) && (!clickable || childNode.isClickable())) {
+                        return childNode;
+                    }
+                }
+                if (childNode.getContentDescription() != null && text.equals(childNode.getContentDescription().toString()) && (!clickable || childNode.isClickable())) {
+                    return childNode;
+                } else if (deepSearch) {
+                    if (childNode.getContentDescription() != null && childNode.getContentDescription().toString().contains(text) && (!clickable || childNode.isClickable())) {
+                        return childNode;
+                    }
+                }
+                AccessibilityNodeInfo foundNode = findNodeByText(childNode, text, deepSearch, clickable);
+                childNode.recycle();
+                if (foundNode != null) {
+                    return foundNode;
+                }
+            }
+        }
+        return null;
     }
 
 

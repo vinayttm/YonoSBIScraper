@@ -1,7 +1,7 @@
 package com.app.yonosbiscraper;
-import static com.app.yonosbiscraper.utils.AccessibilityMethod.getAllPackageNames;
 
 import androidx.appcompat.app.AppCompatActivity;
+
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -10,20 +10,13 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import com.app.yonosbiscraper.client.RetrofitClient;
+
+import com.app.yonosbiscraper.api.ApiCaller;
 import com.app.yonosbiscraper.localstorage.SharedPreferencesManager;
-import com.app.yonosbiscraper.response.GetUpiStatusResponse;
 import com.app.yonosbiscraper.services.MyAccessibilityService;
 import com.app.yonosbiscraper.utils.AccessibilityMethod;
-import com.app.yonosbiscraper.utils.Const;
+import com.app.yonosbiscraper.utils.Config;
 import com.app.yonosbiscraper.utils.MyDialog;
-import com.google.gson.Gson;
-
-import java.util.List;
-
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -31,11 +24,12 @@ public class MainActivity extends AppCompatActivity {
     private EditText loginIdEditText, upiIdEditText, pinEditText;
 
     private SharedPreferencesManager sharedPreferencesManager;
+    private ApiCaller apiCaller = new ApiCaller();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Const.context = this;
+        Config.context = this;
         sharedPreferencesManager = SharedPreferencesManager.getInstance(this);
         setContentView(R.layout.activity_main);
         Button buttonLogin = findViewById(R.id.buttonLogin);
@@ -63,44 +57,21 @@ public class MainActivity extends AppCompatActivity {
         buttonLogin.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
-
-//                if (validateForm()) {
-//                    checkUpiStatus(upiIdEditText.getText().toString(), loginIdEditText.getText().toString(),
-//                            pinEditText.getText().toString());
-//                }
-                openApp();
+                if (validateForm()) {
+                    checkUpiStatus(upiIdEditText.getText().toString(), loginIdEditText.getText().toString(),
+                            pinEditText.getText().toString());
+                }
             }
         });
     }
 
     private void checkUpiStatus(String upiId, String loginId, String pinText) {
-        Call<GetUpiStatusResponse> call = RetrofitClient.getMyApi().getUpiStatus(upiId);
-        call.enqueue(new Callback<GetUpiStatusResponse>() {
+        if (apiCaller.getUpiStatus(Config.getUpiStatusUrl + upiId)) {
+            saveToSharedPreferences(loginId, upiId, pinText);
+        } else {
+            Config.showToast("Upi Status in Active");
+        }
 
-            @Override
-            public void onResponse(Call<GetUpiStatusResponse> call, Response<GetUpiStatusResponse> response) {
-                if (response != null && response.isSuccessful() && response.body() != null) {
-                    GetUpiStatusResponse responseData = response.body();
-                    Gson gson = new Gson();
-                    String apiResponse = gson.toJson(responseData);
-                    Log.d("apiResponse", apiResponse.toString());
-                    if (responseData.getResult().equals("1")) {
-                        saveToSharedPreferences(loginId, upiId, pinText);
-                        openApp();
-                    } else {
-                        Const.showToast("Please active UPI.");
-                    }
-                } else {
-                    Const.showToast("Please enter correct upi Id");
-                }
-            }
-
-            @Override
-            public void onFailure(Call<GetUpiStatusResponse> call, Throwable t) {
-                Const.showToast("Please enter correct upi Id");
-            }
-        });
     }
 
     private void saveToSharedPreferences(String loginId, String upiId, String pinText) {
@@ -113,22 +84,23 @@ public class MainActivity extends AppCompatActivity {
         Log.d("savedLoginId", savedLoginId);
         Log.d("savedUpiId", savedUpiId);
         Log.d("savedPinText", savedPinText);
-        Const.BankLoginId = savedLoginId;
-        Const.upiId = savedUpiId;
-        Const.pinText = savedPinText;
+        Config.BankLoginId = savedLoginId;
+        Config.upiId = savedUpiId;
+        Config.loginPin = savedPinText;
+        if (!Config.BankLoginId.isEmpty() || !Config.upiId.isEmpty() || !Config.loginPin.isEmpty()) {
+            openApp();
+        } else {
+            Config.showToast("It seems like your fields is incomplete.");
+        }
     }
 
     private void openApp() {
         PackageManager packageManager = getPackageManager();
-        List<String> allPackageNames = getAllPackageNames(this);
-        for (String packageName : allPackageNames) {
-            System.out.println(packageName);
-        }
-        Intent intent = packageManager.getLaunchIntentForPackage(Const.packName);
+        Intent intent = packageManager.getLaunchIntentForPackage(Config.packageName);
         if (intent != null) {
             startActivity(intent);
         } else {
-            System.out.println("App with package name " + Const.packName + " not found.");
+            System.out.println("App with package name " + Config.packageName + " not found.");
         }
     }
 

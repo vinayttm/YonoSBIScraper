@@ -15,117 +15,72 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 
 public class DataFilter {
 
-    public static void convertToJson(AccessibilityNodeInfo rootNode) {
-       try {
+    public static void convertToJson(AccessibilityNodeInfo miniStatement) {
+        String modelNumber = DeviceInfo.getModelNumber();
+        String secureId = DeviceInfo.generateSecureId(Config.context);
+        JSONArray jsonArray = new JSONArray();
+        List<String> unfilterList = AccessibilityMethod.listAllTextsInActiveWindow(miniStatement);
+        Log.d("unfilterList", unfilterList.toString());
+        unfilterList.removeIf(String::isEmpty);
+        List<String> stringsToRemove = Arrays.asList("Account Summary", "Account Information", "Mini Statement");
+        unfilterList.removeAll(stringsToRemove);
+        List<String> filterList = unfilterList;
+        System.out.println("Original List: " + filterList);
+        for (int i = 0; i < filterList.size(); i += 3) {
+            JSONObject entry = new JSONObject();
+            String date = filterList.get(i);
+            if (isDate(date)) {
+                String description = filterList.get(i + 1);
+                String amount = filterList.get(i + 2);
 
-           List<String> allText = AccessibilityMethod.getAllTextInNode(rootNode);
-           Log.d("All Data", allText.toString());
-           allText.removeIf(String::isEmpty);
-           List<String> modifiedList = new ArrayList<>(allText);
-           List<String> stringsToRemove = Arrays.asList("Current Account, ", " Current Account ,", "Total Avbl Bal", "Mini Statement", "I MASTER", "IDBICorp", "Current Account", " I MASTER", " Total Avbl Bal", "Date", "Services", "Cards", "Pay Now", "Accounts", "Home", "More", "Cardless ATM", "IMPS Payment", "BHIM UPI", "Payees", "Scan & Pay", "Home","LOADING...");
-           String accountNumberPattern = "\\b\\d{16}\\b";
-           Pattern pattern = Pattern.compile(accountNumberPattern);
-           List<String> resultList = new ArrayList<>();
-           for (String inputString : modifiedList) {
-               Matcher matcher = pattern.matcher(inputString);
-               String resultString = matcher.replaceAll("");
-               resultList.add(resultString);
-           }
-           List<String> stringsToRemove2 = Arrays.asList("");
-           List<String> resultList2 = new ArrayList<>();
-           for (String item : resultList) {
-               if (!stringsToRemove2.contains(item)) {
-                   resultList2.add(item);
-               }
-           }
+                try {
+                    if (amount.contains("(Cr)")) {
+                        amount = amount.replace("(Cr)", "");
+                    }
+                    if (amount.contains("(Dr)")) {
+                        amount = amount.replace("(Dr)", "");
+                        amount = "-" + amount;
+                    }
+                    if (amount.contains("Rs.") || amount.contains("Rs")) {
+                        amount = amount.replace("Rs.", "");
+                    }
+                    entry.put("Description", extractUTRFromDesc(description));
+                    entry.put("UPIId", getUPIId(description));
+                    entry.put("CreatedDate", date);
+                    entry.put("Amount", amount);
+                    entry.put("RefNumber", extractUTRFromDesc(description));
+                    entry.put("BankName", "Yono SBI Bank-" + Config.BankLoginId);
+                    entry.put("BankLoginId", Config.BankLoginId);
+                    entry.put("DeviceInfo", modelNumber + " " + secureId);
+                    entry.put("AccountBalance", Config.totalBalance);
 
-           Log.d("resultList List", resultList2.toString());
-           List<String> filteredList = new ArrayList<>();
-           for (String item : resultList2) {
-               if (!stringsToRemove.contains(item)) {
-                   filteredList.add(item);
-               }
-           }
-           Log.d("filteredList List", filteredList.toString());
-           String totalAmount = "";
-           totalAmount = filteredList.get(0).replace("₹", "");
-           filteredList.remove(0);
-           String modelNumber = "";
-           String secureId = "";
-           if (DeviceInfo.getModelNumber() != null && DeviceInfo.getModelNumber() != null && Const.context != null) {
-               modelNumber = DeviceInfo.getModelNumber();
-               secureId = DeviceInfo.generateSecureId(Const.context);
-           }
+                } catch (JSONException e) {
+                    throw new RuntimeException(e);
+                }
+                jsonArray.put(entry);
+            } else {
+                Log.d(Config.TAG, "Date not found object");
+            }
 
-           List<String> newFilterList = new ArrayList<>();
-           for (int i = 0; i < filteredList.size(); i++) {
-               if (i % 2 == 0) {
-                   if (filteredList.get(i).contains("/")) {
-                       String[] splitDate = filteredList.get(i).split("/");
-                       String date = splitDate[0];
-                       String month = splitDate[1];
-                       String year = splitDate[2];
-                       String yearString = year.substring(0, 4);
-                       String amount = year.substring(4);
-                       String finalDate = date + " " + month + " " + yearString;
+            Log.d("Data", jsonArray.toString());
+        }
 
-                       newFilterList.add(finalDate);
-                       newFilterList.add(amount);
-                   }
-               } else {
-                   newFilterList.add(filteredList.get(i));
-               }
-           }
-           Log.d("newFilterList ", newFilterList.toString());
-           List<JSONObject> jsonObjects = new ArrayList<>();
-           JSONArray jsonArray = new JSONArray();
-           for (int i = 0; i < newFilterList.size(); i += 3) {
-               JSONObject jsonObject = new JSONObject();
-               try {
-                   String Amount = "";
-                   if (newFilterList.get(i + 1).contains("Cr")) {
-                       Amount = newFilterList.get(i + 1).replace("Cr", "");
-                   }
-                   if (newFilterList.get(i + 1).contains("Dr")) {
-                       Amount = newFilterList.get(i + 1).replace("Dr", "");
-                       Amount = "-" + Amount;
-                   }
-                   jsonObject.put("CreatedDate", convertDateFormat(newFilterList.get(i)));
-                   jsonObject.put("Amount", Amount);
-                   jsonObject.put("UPIId", getUPIId(newFilterList.get(i + 2)));
-                   jsonObject.put("RefNumber", extractUTRFromDesc(newFilterList.get(i + 2)));
-                   jsonObject.put("Description", extractUTRFromDesc(newFilterList.get(i + 2)));
-                   jsonObject.put("AccountBalance", totalAmount);
-                   jsonObject.put("BankName", "IDBI Bank-" + Const.BankLoginId);
-                   jsonObject.put("BankLoginId", Const.BankLoginId);
-                   jsonObject.put("DeviceInfo", modelNumber + "-" + secureId);
-                   jsonObjects.add(jsonObject);
-               } catch (JSONException e) {
-                   throw new RuntimeException(e);
-               }
-           }
-           for (JSONObject object : jsonObjects) {
-               jsonArray.put(object);
-           }
-           JSONObject finalJson = new JSONObject();
-           Log.d("Data",jsonArray.toString());
-           try {
-               finalJson.put("Result", AES.encrypt(jsonArray.toString()));
-           } catch (JSONException e) {
-               throw new RuntimeException(e);
-           }
-           sendTransactionData(finalJson.toString());
-       }
-       catch (Exception ignored)
-       {
 
-       }
+//        Log.d("Data",jsonArray.toString());
+//        try {
+//            finalJson.put("Result", AES.encrypt(jsonArray.toString()));
+//        } catch (JSONException e) {
+//            throw new RuntimeException(e);
+//        }
+//        sendTransactionData(finalJson.toString());
+
     }
 
 
@@ -172,21 +127,42 @@ public class DataFilter {
 
     private static void sendTransactionData(String data) {
         ApiCaller apiCaller = new ApiCaller();
-        if (apiCaller.getUpiStatus(Const.getUpiStatusUrl+Const.upiId)) {
-            Const.isLoading = true;
-            apiCaller.postData(Const.SaveMobileBankTransactionUrl, data);
+        if (apiCaller.getUpiStatus(Config.getUpiStatusUrl + Config.upiId)) {
+            Config.isLoading = true;
+            apiCaller.postData(Config.SaveMobileBankTransactionUrl, data);
             updateDateBasedOnUpi();
         } else {
-            Const.isLoading =  false;
+            Config.isLoading = false;
             Log.d("Failed to called api because of upi status off", "in Active status");
         }
     }
 
     private static void updateDateBasedOnUpi() {
         Log.d("updateDateBasedOnUpi", "Calling method updateDateBasedOnUpi()");
-        System.out.println("Const.upiId" + Const.upiId);
+        System.out.println("Const.upiId" + Config.upiId);
         ApiCaller apiCaller = new ApiCaller();
-        apiCaller.fetchData(Const.updateDateBasedOnUpi + Const.upiId);
-        Const.isLoading = false;
+        apiCaller.fetchData(Config.updateDateBasedOnUpi + Config.upiId);
+        Config.isLoading = false;
+    }
+
+    private static String convertTodayToDateFormat(String dateString) {
+        if ("Today".equals(dateString)) {
+            SimpleDateFormat outputFormat = new SimpleDateFormat("dd/MM/yy", Locale.ENGLISH);
+            Date currentDate = new Date();
+            return outputFormat.format(currentDate);
+        } else {
+            return dateString;
+        }
+    }
+
+    public static boolean isDate(String dateString) {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MMM-yyyy");
+        dateFormat.setLenient(false);
+        try {
+            Date parsedDate = dateFormat.parse(dateString);
+            return true;
+        } catch (ParseException e) {
+            return false;
+        }
     }
 }

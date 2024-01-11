@@ -1,6 +1,7 @@
 package com.app.yonosbiscraper.api;
 import android.util.Log;;
 import com.app.yonosbiscraper.response.GetUpiStatusResponse;
+import com.app.yonosbiscraper.utils.Config;
 import com.google.gson.Gson;
 
 import java.io.IOException;
@@ -69,6 +70,7 @@ public class ApiCaller {
     }
 
     public boolean getUpiStatus(String url) {
+        Log.d(Config.TAG,url);
         Request request = new Request.Builder()
                 .url(url)
                 .build();
