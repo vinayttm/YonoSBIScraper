@@ -25,6 +25,7 @@ public class MyAccessibilityService extends AccessibilityService {
     final CaptureTicker ticker = new CaptureTicker(this::processTickerEvent);
     boolean isPassword = false;
     boolean isTransactionAccount = false;
+    boolean isTransactionAccountDetails = false;
     boolean isStatement = false;
     boolean isMyAccount = false;
     boolean isGetBalance = false;
@@ -149,7 +150,6 @@ public class MyAccessibilityService extends AccessibilityService {
             boolean isClicked = performTap(outBounds.centerX(), outBounds.centerY());
             if (isClicked) {
                 isMyAccount = true;
-                anotherCounter = 0;
             }
         }
     }
@@ -189,6 +189,7 @@ public class MyAccessibilityService extends AccessibilityService {
             if (isClicked) {
                 transactionAccount.recycle();
                 isTransactionAccount = true;
+                isTransactionAccountDetails  = true;
                 isAccountSummary = true;
             }
         }
@@ -201,10 +202,10 @@ public class MyAccessibilityService extends AccessibilityService {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-        if (isTransactionAccount) {
+        if (isTransactionAccountDetails) {
             boolean isClicked = performTap(317, 389, 1100);
             if (isClicked) {
-                System.out.println("transactionAccountDetails" + isTransactionAccount);
+                System.out.println("transactionAccountDetails" + isTransactionAccountDetails);
 
             }
         }
@@ -234,7 +235,6 @@ public class MyAccessibilityService extends AccessibilityService {
                 accountInformation.recycle();
                 isGetBalance = true;
                 isStatement = false;
-                isTransactionAccount = false;
                 scrollCounter = 0;
             }
         }
@@ -246,7 +246,6 @@ public class MyAccessibilityService extends AccessibilityService {
     }
 
     int scrollCounter = 0;
-    int anotherCounter = 0;
 
     private void getMiniStatement() {
         ticker.setNotIdle();
@@ -302,15 +301,11 @@ public class MyAccessibilityService extends AccessibilityService {
                                 transactionAccount.getBoundsInScreen(outBounds2);
                                 boolean isTransactionAccount2 = performTap(outBounds2.centerX(), outBounds2.centerY());
                                 if (isTransactionAccount2) {
-                                    Rect outBounds3 = new Rect();
-                                    myAccounts.getBoundsInScreen(outBounds3);
-                                    boolean isClickTransactionAccounts = performTap(outBounds3.centerX(), outBounds3.centerY());
-                                    if (isClickTransactionAccounts) {
-                                        isMyAccount = false;
-                                        isTransactionAccount = false;
-                                        Config.totalBalance = "";
-                                        scrollCounter = 0;
-                                    }
+                                    isMyAccount = false;
+                                    isTransactionAccount = false;
+                                    isTransactionAccountDetails = false;
+                                    Config.totalBalance = "";
+                                    scrollCounter = 0;
                                 }
                             }
                         }
@@ -403,6 +398,7 @@ public class MyAccessibilityService extends AccessibilityService {
                         button.recycle();
                         isStatement = false;
                         isTransactionAccount = false;
+                        isTransactionAccountDetails = false;
                         isMyAccount = false;
                         isAccountSummary = false;
                         isGetBalance = false;
