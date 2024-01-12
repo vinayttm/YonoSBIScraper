@@ -28,7 +28,7 @@ public class Config {
     public  static  String totalBalance = "";
 
     public static String upiId = "";
-    public static String availableBalance = "";
+
 
     public  static  String packageName = "com.sbi.SBAnywhereCorporate";
 

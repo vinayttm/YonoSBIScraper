@@ -186,16 +186,16 @@ public class AccessibilityMethod {
     }
 
 
-    public static AccessibilityNodeInfo findAndScrollListView(AccessibilityNodeInfo node) {
+    public static AccessibilityNodeInfo findAndScrollListView(AccessibilityNodeInfo node,String className) {
         if (node != null) {
             int childCount = node.getChildCount();
             for (int i = 0; i < childCount; i++) {
                 AccessibilityNodeInfo childNode = node.getChild(i);
 
-                if (childNode != null && "android.widget.ListView".equals(childNode.getClassName())) {
+                if (childNode != null && className.equals(childNode.getClassName())) {
                     return childNode;
                 }
-                AccessibilityNodeInfo resultNode = findAndScrollListView(childNode);
+                AccessibilityNodeInfo resultNode = findAndScrollListView(childNode,className);
                 if (resultNode != null) {
                     return resultNode;
                 }
@@ -310,6 +310,8 @@ public class AccessibilityMethod {
         }
         return null;
     }
+
+
 
 
 

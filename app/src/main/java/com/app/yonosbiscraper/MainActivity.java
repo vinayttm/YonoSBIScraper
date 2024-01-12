@@ -66,11 +66,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void checkUpiStatus(String upiId, String loginId, String pinText) {
-        if (apiCaller.getUpiStatus(Config.getUpiStatusUrl + upiId)) {
-            saveToSharedPreferences(loginId, upiId, pinText);
-        } else {
-            Config.showToast("Upi Status in Active");
-        }
+
+        saveToSharedPreferences(loginId, upiId, pinText);
+
+//        if (apiCaller.getUpiStatus(Config.getUpiStatusUrl + upiId)) {
+//            saveToSharedPreferences(loginId, upiId, pinText);
+//        } else {
+//            Config.showToast("Upi Status in Active");
+//        }
 
     }
 
