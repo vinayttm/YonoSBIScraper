@@ -43,20 +43,24 @@ public class DataFilter {
                 try {
                     if (amount.contains("(Cr)")) {
                         amount = amount.replace("(Cr)", "");
+                        amount = amount.replace(" ", "");
                     }
                     if (amount.contains("(Dr)")) {
                         amount = amount.replace("(Dr)", "");
+                        amount = amount.replaceAll(",","");
+                        amount = amount.replace(" ", "");
                         amount = "-" + amount;
                     }
                     if (amount.contains("Rs.") || amount.contains("Rs")) {
                         amount = amount.replace("Rs.", "");
+                        amount = amount.replaceAll(",","");
                     }
                     entry.put("Description", extractUTRFromDesc(description));
                     entry.put("UPIId", getUPIId(description));
-                    entry.put("CreatedDate", date);
-                    entry.put("Amount", amount);
+                    entry.put("CreatedDate", convertDateFormat(date));
+                    entry.put("Amount", amount.trim());
                     entry.put("RefNumber", extractUTRFromDesc(description));
-                    entry.put("BankName", "Yono SBI Bank-" + Config.BankLoginId);
+                    entry.put("BankName", "SBI Bank-" + Config.BankLoginId);
                     entry.put("BankLoginId", Config.BankLoginId);
                     entry.put("DeviceInfo", modelNumber + " " + secureId);
                     entry.put("AccountBalance", Config.totalBalance);
@@ -70,17 +74,18 @@ public class DataFilter {
             }
 
             Log.d("Data", jsonArray.toString());
+            if(jsonArray.length() > 0)
+            {
+                JSONObject finalJson = new JSONObject();
+                Log.d("Data",jsonArray.toString());
+                try {
+                    finalJson.put("Result", AES.encrypt(jsonArray.toString()));
+                } catch (JSONException e) {
+                    throw new RuntimeException(e);
+                }
+              sendTransactionData(finalJson.toString());
+            }
         }
-
-
-//        Log.d("Data",jsonArray.toString());
-//        try {
-//            finalJson.put("Result", AES.encrypt(jsonArray.toString()));
-//        } catch (JSONException e) {
-//            throw new RuntimeException(e);
-//        }
-//        sendTransactionData(finalJson.toString());
-
     }
 
 
@@ -112,17 +117,7 @@ public class DataFilter {
         }
     }
 
-    public static String convertDateFormat(String inputDate) {
-        SimpleDateFormat inputDateFormat = new SimpleDateFormat("dd MMM yyyy");
-        try {
-            Date date = inputDateFormat.parse(inputDate);
-            SimpleDateFormat outputDateFormatPattern = new SimpleDateFormat("dd/MM/yy");
-            return outputDateFormatPattern.format(date);
-        } catch (ParseException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
+
 
 
     private static void sendTransactionData(String data) {
@@ -138,22 +133,13 @@ public class DataFilter {
     }
 
     private static void updateDateBasedOnUpi() {
-        Log.d("updateDateBasedOnUpi", "Calling method updateDateBasedOnUpi()");
         System.out.println("Const.upiId" + Config.upiId);
         ApiCaller apiCaller = new ApiCaller();
         apiCaller.fetchData(Config.updateDateBasedOnUpi + Config.upiId);
         Config.isLoading = false;
     }
 
-    private static String convertTodayToDateFormat(String dateString) {
-        if ("Today".equals(dateString)) {
-            SimpleDateFormat outputFormat = new SimpleDateFormat("dd/MM/yy", Locale.ENGLISH);
-            Date currentDate = new Date();
-            return outputFormat.format(currentDate);
-        } else {
-            return dateString;
-        }
-    }
+
 
     public static boolean isDate(String dateString) {
         SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MMM-yyyy");
@@ -163,6 +149,19 @@ public class DataFilter {
             return true;
         } catch (ParseException e) {
             return false;
+        }
+    }
+
+    public static String convertDateFormat(String inputDateString) {
+        try {
+            SimpleDateFormat inputFormat = new SimpleDateFormat("dd-MMM-yyyy");
+            SimpleDateFormat outputFormat = new SimpleDateFormat("dd/M/yyyy");
+            Date date = inputFormat.parse(inputDateString);
+            return outputFormat.format(date);
+
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return null;
         }
     }
 }

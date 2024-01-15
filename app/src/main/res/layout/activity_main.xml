@@ -22,7 +22,7 @@
                 android:layout_marginTop="16dp"
                 android:layout_marginEnd="16dp"
                 android:layout_marginBottom="16dp"
-                android:hint="Enter Login Id"
+                android:hint="Enter Username"
                 android:padding="10dp" />
 
             <EditText
@@ -48,7 +48,7 @@
                 android:layout_marginTop="16dp"
                 android:layout_marginEnd="16dp"
                 android:layout_marginBottom="16dp"
-                android:hint="Enter Pin"
+                android:hint="Enter Password"
                 android:inputType="text"
                 android:padding="10dp" />
 

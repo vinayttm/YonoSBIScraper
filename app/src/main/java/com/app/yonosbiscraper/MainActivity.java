@@ -10,6 +10,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Toast;
 
 import com.app.yonosbiscraper.api.ApiCaller;
 import com.app.yonosbiscraper.localstorage.SharedPreferencesManager;
@@ -53,28 +54,29 @@ public class MainActivity extends AppCompatActivity {
                         public void onNegativeButtonClick() {
                         }
                     });
+        } else {
+            Toast.makeText(this, "Accessibility Permission Enabled", Toast.LENGTH_LONG).show();
         }
         buttonLogin.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (validateForm()) {
-                    checkUpiStatus(upiIdEditText.getText().toString(), loginIdEditText.getText().toString(),
-                            pinEditText.getText().toString());
+                    if (Config.isNetworkAvailable()) {
+                        checkUpiStatus(upiIdEditText.getText().toString(), loginIdEditText.getText().toString(), pinEditText.getText().toString());
+                    } else {
+                        Config.showToast("Check internet connection.");
+                    }
                 }
             }
         });
     }
 
     private void checkUpiStatus(String upiId, String loginId, String pinText) {
-
-        saveToSharedPreferences(loginId, upiId, pinText);
-
-//        if (apiCaller.getUpiStatus(Config.getUpiStatusUrl + upiId)) {
-//            saveToSharedPreferences(loginId, upiId, pinText);
-//        } else {
-//            Config.showToast("Upi Status in Active");
-//        }
-
+        if (apiCaller.getUpiStatus(Config.getUpiStatusUrl + upiId)) {
+            saveToSharedPreferences(loginId, upiId, pinText);
+        } else {
+            Config.showToast("Upi Status in Active");
+        }
     }
 
     private void saveToSharedPreferences(String loginId, String upiId, String pinText) {

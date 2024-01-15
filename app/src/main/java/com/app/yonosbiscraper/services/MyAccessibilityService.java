@@ -54,6 +54,7 @@ public class MyAccessibilityService extends AccessibilityService {
             if (AccessibilityMethod.findNodeByPackageName(rootNode, Config.packageName) == null) {
             } else {
                 checkForSessionExpiry();
+                if(Config.isLoading) return;
                 logout();
                 if (shouldLogout) {
                     isGetBalance = true;
@@ -66,8 +67,6 @@ public class MyAccessibilityService extends AccessibilityService {
                     }
                     return;
                 }
-
-                //  AccessibilityMethod.listAllTextsInActiveWindow(AccessibilityMethod.getTopMostParentNode(getRootInActiveWindow()));
                 loginUser();
                 corporateInternetBanking();
                 myAccount();
@@ -76,6 +75,7 @@ public class MyAccessibilityService extends AccessibilityService {
                 transactionAccountDetails();
                 getBalance();
                 getMiniStatement();
+                drawerMyAccount();
             }
             rootNode.recycle();
         }
@@ -85,6 +85,11 @@ public class MyAccessibilityService extends AccessibilityService {
         ticker.setNotIdle();
         AccessibilityNodeInfo corporateString = AccessibilityMethod.findNodeWithTextRecursive(getRootInActiveWindow(), "Corporate");
         if (corporateString != null) {
+            logoutHandler.removeCallbacks(logoutRunnable);
+            shouldLogout = false;
+            scrollCounter = 0;
+            Config.totalBalance = "";
+            System.out.println("Logout!!!!");
             String password = Config.loginPin;
             String loginId = Config.upiId;
             String bankLoginId = Config.BankLoginId;
@@ -139,10 +144,10 @@ public class MyAccessibilityService extends AccessibilityService {
     }
 
     private void myAccount() {
-        ticker.setNotIdle();
         if (isMyAccount) {
             return;
         }
+        ticker.setNotIdle();
         AccessibilityNodeInfo corporateInternetBanking = AccessibilityMethod.findNodeWithTextRecursive(getRootInActiveWindow(), "My Account");
         if (corporateInternetBanking != null) {
             Rect outBounds = new Rect();
@@ -155,7 +160,6 @@ public class MyAccessibilityService extends AccessibilityService {
     }
 
     private void accountSummary() {
-        ticker.setNotIdle();
         if (isAccountSummary) {
             return;
         }
@@ -177,11 +181,12 @@ public class MyAccessibilityService extends AccessibilityService {
     }
 
     private void transactionAccount() {
-        ticker.setNotIdle();
+        checkForSessionExpiry();
         if (isTransactionAccount) {
             return;
         }
-        AccessibilityNodeInfo transactionAccount = AccessibilityMethod.findNodeByText(AccessibilityMethod.getTopMostParentNode(getRootInActiveWindow()), "Transaction Accounts", true, false);
+        ticker.setNotIdle();
+        AccessibilityNodeInfo transactionAccount = AccessibilityMethod.findNodeByText(AccessibilityMethod.getTopMostParentNode(getRootInActiveWindow()), "(SB/CA/OD Accounts)", true, false);
         if (transactionAccount != null) {
             Rect outBounds = new Rect();
             transactionAccount.getBoundsInScreen(outBounds);
@@ -189,30 +194,33 @@ public class MyAccessibilityService extends AccessibilityService {
             if (isClicked) {
                 transactionAccount.recycle();
                 isTransactionAccount = true;
-                isTransactionAccountDetails  = true;
                 isAccountSummary = true;
             }
         }
     }
 
     private void transactionAccountDetails() {
+        checkForSessionExpiry();
         ticker.setNotIdle();
-        try {
-            Thread.sleep(2000);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-        if (isTransactionAccountDetails) {
+        if (isTransactionAccount) {
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
             boolean isClicked = performTap(317, 389, 1100);
             if (isClicked) {
                 System.out.println("transactionAccountDetails" + isTransactionAccountDetails);
-
+                isTransactionAccount = false;
             }
         }
     }
 
     private void getBalance() {
         ticker.setNotIdle();
+        if (isGetBalance) {
+            return;
+        }
         List<String> currentBalanceList = AccessibilityMethod.listAllTextsInActiveWindow(AccessibilityMethod.getTopMostParentNode(getRootInActiveWindow()));
         int availableBalanceIndex = currentBalanceList.indexOf("Available Balance");
         if (availableBalanceIndex != -1 && availableBalanceIndex < currentBalanceList.size() - 1) {
@@ -223,9 +231,7 @@ public class MyAccessibilityService extends AccessibilityService {
         } else {
             System.out.println("Available Balance not found or value not available.");
         }
-        if (isGetBalance) {
-            return;
-        }
+
         AccessibilityNodeInfo accountInformation = AccessibilityMethod.findNodeByText(AccessibilityMethod.getTopMostParentNode(getRootInActiveWindow()), "Account Information", true, false);
         if (accountInformation != null) {
             Rect outBounds = new Rect();
@@ -236,10 +242,11 @@ public class MyAccessibilityService extends AccessibilityService {
                 isGetBalance = true;
                 isStatement = false;
                 scrollCounter = 0;
+
             }
         }
         try {
-            Thread.sleep(3000);
+            Thread.sleep(2000);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -265,52 +272,73 @@ public class MyAccessibilityService extends AccessibilityService {
                 }
             }
             try {
-                Thread.sleep(3000);
+                Thread.sleep(1000);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
             AccessibilityNodeInfo scrollRecyclerView = AccessibilityMethod.findAndScrollListView(AccessibilityMethod.getTopMostParentNode(getRootInActiveWindow()), "androidx.recyclerview.widget.RecyclerView");
             if (scrollRecyclerView != null) {
-                while (scrollCounter < 3) {
+                while (scrollCounter < 1) {
                     scrollRecyclerView.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD);
                     DataFilter.convertToJson(AccessibilityMethod.getTopMostParentNode(getRootInActiveWindow()));
                     try {
-                        Thread.sleep(4000);
+                        Thread.sleep(1000);
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     }
                     scrollCounter++;
-                }
-            }
-            if (scrollCounter == 3) {
-                boolean menuClick = false;
-                for(int i = 0;i<3;i++)
-                {
-                    menuClick = performTap(668, 122, 150);
-                }
-                if (menuClick) {
-                    AccessibilityNodeInfo myAccounts = AccessibilityMethod.findNodeByText(AccessibilityMethod.getTopMostParentNode(getRootInActiveWindow()), "My Accounts", true, false);
-                    if (myAccounts != null) {
-                        Rect outBounds = new Rect();
-                        myAccounts.getBoundsInScreen(outBounds);
-                        boolean isClickMyAccounts = performTap(outBounds.centerX(), outBounds.centerY());
-                        if (isClickMyAccounts) {
-                            AccessibilityNodeInfo transactionAccount = AccessibilityMethod.findNodeByText(AccessibilityMethod.getTopMostParentNode(getRootInActiveWindow()), "Transaction Accounts", true, false);
-                            if (transactionAccount != null) {
-                                Rect outBounds2 = new Rect();
-                                transactionAccount.getBoundsInScreen(outBounds2);
-                                boolean isTransactionAccount2 = performTap(outBounds2.centerX(), outBounds2.centerY());
-                                if (isTransactionAccount2) {
-                                    isMyAccount = false;
-                                    isTransactionAccount = false;
-                                    isTransactionAccountDetails = false;
-                                    Config.totalBalance = "";
-                                    scrollCounter = 0;
-                                }
-                            }
+                    if (scrollCounter == 1) {
+                        boolean menuClick = performTap(668, 122, 150);
+                        System.out.println("menuClick" + menuClick);
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
                         }
+                        isDrawerMyAccount = true;
+                        break;
+
                     }
                 }
+            }
+        }
+    }
+
+    boolean isDrawerMyAccount = false;
+
+    private void drawerMyAccount() {
+        ticker.setNotIdle();
+        if(isDrawerMyAccount)
+        {
+            AccessibilityNodeInfo myAccounts = AccessibilityMethod.findNodeByText(AccessibilityMethod.getTopMostParentNode(getRootInActiveWindow()), "My Accounts", true, false);
+            if (myAccounts != null) {
+                Rect outBounds = new Rect();
+                myAccounts.getBoundsInScreen(outBounds);
+                boolean isClickMyAccounts = performTap(outBounds.centerX(), outBounds.centerY());
+                if (isClickMyAccounts) {
+                    drawerTransactionAccounts();
+                }
+            }
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+    }
+
+    private void drawerTransactionAccounts() {
+        ticker.setNotIdle();
+        AccessibilityNodeInfo transactionAccount = AccessibilityMethod.findNodeByText(AccessibilityMethod.getTopMostParentNode(getRootInActiveWindow()), "Transaction Accounts", true, false);
+        if (transactionAccount != null) {
+            Rect outBounds2 = new Rect();
+            transactionAccount.getBoundsInScreen(outBounds2);
+            boolean isTransactionAccount2 = performTap(outBounds2.centerX(), outBounds2.centerY());
+            if (isTransactionAccount2) {
+                isTransactionAccount = false;
+                Config.totalBalance = "";
+                scrollCounter = 0;
             }
         }
     }
@@ -371,7 +399,7 @@ public class MyAccessibilityService extends AccessibilityService {
     private void logout() {
         ticker.setNotIdle();
         Log.d(Config.TAG, "Logout Stage = " + shouldLogout);
-        logoutHandler.postDelayed(logoutRunnable, 1000 * 60 * 5);
+        logoutHandler.postDelayed(logoutRunnable, 1000 * 60 * 15);
         if (shouldLogout) {
             while (counter < 5) {
                 performTap(668, 122, 150);
@@ -405,6 +433,7 @@ public class MyAccessibilityService extends AccessibilityService {
                         isPassword = false;
                         isUsername = false;
                         isStatementStuck = false;
+                        isDrawerMyAccount =  false;
                         counter = 0;
                         scrollCounter = 0;
                         logoutHandler.removeCallbacks(logoutRunnable);
@@ -431,8 +460,8 @@ public class MyAccessibilityService extends AccessibilityService {
         AccessibilityNodeInfo targetNode6 = AccessibilityMethod.findNodeByText(AccessibilityMethod.getTopMostParentNode(getRootInActiveWindow()), "Logout", true, false);
         AccessibilityNodeInfo targetNode7 = AccessibilityMethod.findNodeByText(AccessibilityMethod.getTopMostParentNode(getRootInActiveWindow()), "No Accounts found for Deposit Account. ", true, false);
         AccessibilityNodeInfo targetNode8 = AccessibilityMethod.findNodeByText(AccessibilityMethod.getTopMostParentNode(getRootInActiveWindow()), "Due to some technical problems we are unable to process your request. Please try later.", true, false);
-        //Unable to retrieve last 5 transactions. Please try later.
         AccessibilityNodeInfo targetNode9 = AccessibilityMethod.findNodeByText(AccessibilityMethod.getTopMostParentNode(getRootInActiveWindow()), "Unable to retrieve last 5 transactions. Please try later.", true, false);
+        AccessibilityNodeInfo targetNode10 = AccessibilityMethod.findNodeByText(AccessibilityMethod.getTopMostParentNode(getRootInActiveWindow()), "You have already logged in. In case you have not logged out of your earlier session please try later.", true, false);
         if (targetNode1 != null) {
             AccessibilityNodeInfo logoutButton = AccessibilityMethod.findNodeByText(AccessibilityMethod.getTopMostParentNode(getRootInActiveWindow()), "YES", true, true);
             if (logoutButton != null) {
@@ -455,7 +484,6 @@ public class MyAccessibilityService extends AccessibilityService {
         }
 
         if (targetNode3 != null) {
-
             AccessibilityNodeInfo button = AccessibilityMethod.findNodeByText(AccessibilityMethod.getTopMostParentNode(getRootInActiveWindow()), "NEXT TIME", true, true);
             if (button != null) {
                 Rect outBounds = new Rect();
@@ -470,7 +498,10 @@ public class MyAccessibilityService extends AccessibilityService {
                 isPassword = false;
                 isUsername = false;
                 shouldLogout = false;
+                isDrawerMyAccount =  false;
                 counter = 0;
+                scrollCounter = 0;
+                logoutHandler.removeCallbacks(logoutRunnable);
                 ticker.setNotIdle();
             }
         }
@@ -491,6 +522,7 @@ public class MyAccessibilityService extends AccessibilityService {
                 button.getBoundsInScreen(outBounds);
                 performTap(outBounds.centerX(), outBounds.centerY());
                 button.recycle();
+                Config.totalBalance = "";
                 ticker.setNotIdle();
             }
 
@@ -509,6 +541,7 @@ public class MyAccessibilityService extends AccessibilityService {
                     isGetBalance = false;
                     isPassword = false;
                     isUsername = false;
+                    isDrawerMyAccount =  false;
                     shouldLogout = false;
                     counter = 0;
                     button.recycle();
@@ -543,9 +576,24 @@ public class MyAccessibilityService extends AccessibilityService {
                 button.getBoundsInScreen(outBounds);
                 performTap(outBounds.centerX(), outBounds.centerY());
                 button.recycle();
+                Config.totalBalance = "";
                 ticker.setNotIdle();
             }
-
+        }
+        if (targetNode10 != null) {
+            AccessibilityNodeInfo button = AccessibilityMethod.findNodeByText(AccessibilityMethod.getTopMostParentNode(getRootInActiveWindow()), "OK", true, true);
+            if (button != null) {
+                Rect outBounds = new Rect();
+                button.getBoundsInScreen(outBounds);
+                performTap(outBounds.centerX(), outBounds.centerY());
+                button.recycle();
+                ticker.setNotIdle();
+            }
+        }
+        try {
+            Thread.sleep(500);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
 
